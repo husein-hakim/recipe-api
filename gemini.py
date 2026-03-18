@@ -41,3 +41,41 @@ def generate_recipe(caption):
     )
 
     return Recipe.model_validate_json(response.text)
+
+def generate_recipe_from_image(image_bytes):
+
+    prompt = """
+    Extract a complete recipe from this image.
+
+    The image may contain:
+    - handwritten notes
+    - printed recipes
+    - screenshots of recipes
+
+    Return a complete structured recipe.
+    Fill missing details logically if needed.
+    """
+
+    response = client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=[
+            {
+                "role": "user",
+                "parts": [
+                    {"text": prompt},
+                    {
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": image_bytes
+                        }
+                    }
+                ]
+            }
+        ],
+        config={
+            "response_mime_type": "application/json",
+            "response_json_schema": Recipe.model_json_schema(),
+        },
+    )
+
+    return Recipe.model_validate_json(response.text)
