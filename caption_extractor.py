@@ -1,40 +1,22 @@
+from models import ExtractedSource, ExtractionMethod, ErrorCode, SourceType
 from platform_detection import detect_platform
+from security import SafeFetchError, validate_public_url
 from instagram import get_instagram_data
-from youtube import get_youtube_data
 from tiktok import get_tiktok_data
-from website import extract_structured_recipe, get_webpage_text, extract_image_from_website
+from website import extract_website
+from youtube import get_youtube_data
 
-def caption_extractor(url):
+
+async def extract_source(url: str) -> ExtractedSource:
     platform = detect_platform(url)
-
-    if platform == 'instagram':
-        return get_instagram_data(url)
-
-    elif platform == 'youtube':
-        return get_youtube_data(url)
-
-    elif platform == 'tiktok':
-        return get_tiktok_data(url)
-
-    else:
-        structured = extract_structured_recipe(url)
-        image = extract_image_from_website(url)
-
-        if structured:
-            return {
-                "type": "structured",
-                "data": structured,
-                "image": (
-                    structured.get("image")[0]
-                    if isinstance(structured.get("image"), list)
-                    else structured.get("image")
-                ) or image
-            }
-
-        text = get_webpage_text(url)
-
-        return {
-            "type": "text",
-            "caption": text,
-            "image": image
-        }
+    try:
+        await validate_public_url(url)
+        if platform == "instagram":
+            return await get_instagram_data(url)
+        if platform == "tiktok":
+            return await get_tiktok_data(url)
+        if platform == "youtube":
+            return await get_youtube_data(url)
+        return await extract_website(url)
+    except SafeFetchError as exc:
+        return ExtractedSource(source_type=SourceType.social if platform != "website" else SourceType.website, platform=platform, extraction_method=ExtractionMethod.social_caption if platform != "website" else ExtractionMethod.website_text, error_code=exc.code, error_message=exc.message)
