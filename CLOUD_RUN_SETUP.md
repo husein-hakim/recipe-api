@@ -137,6 +137,7 @@ Finally set the iOS build setting `PINCHMEAL_BACKEND_BASE_URL` to the Cloud Run 
 
 ## Common errors
 
+- **`developerconnect.gitRepositoryLinks.fetchReadToken` denied during `FETCHSOURCE`:** open the failed build in **Cloud Build → History**, copy the service account shown in its build details, then grant that exact service account **Developer Connect Read Token Accessor** (`roles/developerconnect.readTokenAccessor`) in **IAM & Admin → IAM**. Retry after the IAM change has propagated. Do not guess between the legacy Cloud Build and Compute Engine default service accounts; Google projects can use either.
 - **Function target required:** you started a Function deployment. Create a Cloud Run Service and choose Docker.
 - **Dockerfile not found:** context must be `.` when the selected repository is `/Users/husein/recipe`.
 - **Qwen 401 / incorrect API key:** the Qwen key and `QWEN_BASE_URL` are from different regions.

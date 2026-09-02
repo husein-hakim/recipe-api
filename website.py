@@ -44,6 +44,11 @@ def _yield(value) -> int | None:
     return int(match.group()) if match else None
 
 
+def _number(value) -> float | None:
+    match = re.search(r"\d+(?:[.,]\d+)?", str(value or ""))
+    return float(match.group().replace(",", ".")) if match else None
+
+
 def _image(value, base_url: str) -> str | None:
     if isinstance(value, list):
         value = value[0] if value else None
@@ -77,6 +82,7 @@ def _steps(value) -> list[StepDraft]:
 
 def _draft_from_json_ld(data: dict, source_url: str) -> RecipeDraft:
     publisher = _publisher(data)
+    nutrition = data.get("nutrition") if isinstance(data.get("nutrition"), dict) else {}
     return RecipeDraft(
         title=data.get("name"),
         description=BeautifulSoup(str(data.get("description") or ""), "html.parser").get_text(" ", strip=True) or None,
@@ -90,6 +96,10 @@ def _draft_from_json_ld(data: dict, source_url: str) -> RecipeDraft:
         ingredients=[IngredientDraft(name=str(item).strip()) for item in data.get("recipeIngredient") or [] if str(item).strip()],
         steps=_steps(data.get("recipeInstructions") or []),
         dietary_tags=[str(item) for item in (data.get("suitableForDiet") if isinstance(data.get("suitableForDiet"), list) else [data.get("suitableForDiet")]) if item],
+        calories=round(value) if (value := _number(nutrition.get("calories"))) is not None else None,
+        protein_grams=_number(nutrition.get("proteinContent")),
+        carbs_grams=_number(nutrition.get("carbohydrateContent")),
+        fat_grams=_number(nutrition.get("fatContent")),
     )
 
 

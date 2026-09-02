@@ -1,7 +1,9 @@
 # Pinchmeal recipe-import service
 
 This is a FastAPI web service, not a Google Cloud Function. It extracts recipe information from websites and social captions, then uses Qwen to prepare structured recipe drafts.
-For social imports, Qwen may complete missing culinary fields using the creator caption and public thumbnail. These estimates are returned with lower confidence and must be reviewed before saving. It never marks a recipe allergen-safe from missing information.
+For social imports, Qwen may complete missing culinary fields using the creator caption and public thumbnail. Imported recipes must still be reviewed before saving. It never marks a recipe allergen-safe from missing information.
+
+Recipe drafts also include per-serving calories, protein, carbohydrates and fat, plus total and per-serving cost in USD cents. Qwen calculates these values from the final ingredient quantities and serving count when the source does not provide them.
 
 ## The only required secret
 

@@ -29,8 +29,8 @@ def _recipe_json_instructions(method: ExtractionMethod, complete_missing: bool =
     completion_rules = """When an important recipe field is missing, use the caption, visible thumbnail, and
 ordinary culinary knowledge to infer a sensible value. You may infer a concise title, description, servings,
 preparation and cooking times, meal types, ingredient quantities and units, necessary connecting steps, and
-step timers. Keep estimates conservative and internally consistent. Do not replace explicit source values
-with guesses. The goal is a complete, useful social-recipe draft.""" if complete_missing else """Do not infer or estimate absent recipe facts. Use null for unknown scalar values and [] for missing lists.
+step timers. Keep generated values conservative and internally consistent. Do not replace explicit source values
+with guesses. The goal is a complete, useful recipe draft.""" if complete_missing else """Do not infer or estimate absent recipe facts. Use null for unknown scalar values and [] for missing lists.
 Preserve incomplete source material as an incomplete draft for user review."""
 
     return f"""Return one valid JSON object containing a practical recipe draft.
@@ -52,13 +52,27 @@ Return exactly this top-level structure:
     "ingredients": [{{"name": string, "amount": number|null, "unit": string|null, "notes": string|null, "optional": boolean|null}}],
     "steps": [{{"instruction": string, "timer_minutes": integer|null}}],
     "dietary_tags": [string],
-    "detected_allergens": [string]
+    "detected_allergens": [string],
+    "calories": integer,
+    "protein_grams": number,
+    "carbs_grams": number,
+    "fat_grams": number,
+    "total_cost_minor": integer,
+    "cost_per_serving_minor": integer,
+    "currency_code": "USD"
   }},
   "inferred_fields": [string]
 }}
 
 List every generated or estimated field in inferred_fields using paths such as "title", "servings",
 "ingredients[0].amount", or "steps[2]". Do not list fields copied directly from the source.
+
+Always calculate calories, protein_grams, carbs_grams, and fat_grams per serving from the final ingredient
+quantities and serving count, even when the source provides no nutrition. Always calculate total_cost_minor
+and cost_per_serving_minor using typical mid-range US grocery prices. Costs are integer US cents, currency_code
+is USD, and total cost must equal cost per serving multiplied by servings within ordinary rounding tolerance.
+These seven fields must be non-null whenever the final recipe has ingredients. Return practical values directly;
+do not add estimate labels, approximation symbols, ranges, or explanatory text to the recipe fields.
 
 Never claim that a recipe is allergen-free or medically safe. detected_allergens may identify allergens
 present in the final ingredient list, but absence from that list never means verified-free. Do not infer
@@ -98,13 +112,19 @@ def _confidence(draft: RecipeDraft, inferred: set[str]) -> dict[str, float]:
         "meal_types": value("meal_types", bool(draft.meal_types)),
         "ingredients": value("ingredients", bool(draft.ingredients)),
         "steps": value("steps", bool(draft.steps)),
+        "calories": value("calories", draft.calories is not None),
+        "protein_grams": value("protein_grams", draft.protein_grams is not None),
+        "carbs_grams": value("carbs_grams", draft.carbs_grams is not None),
+        "fat_grams": value("fat_grams", draft.fat_grams is not None),
+        "total_cost_minor": value("total_cost_minor", draft.total_cost_minor is not None),
+        "cost_per_serving_minor": value("cost_per_serving_minor", draft.cost_per_serving_minor is not None),
     }
 
 
 def _inference_warnings(inferred: set[str], used_thumbnail: bool) -> list[str]:
     warnings: list[str] = []
     if inferred:
-        warnings.append("Qwen filled missing recipe details using culinary estimates. Review quantities, timings, servings, and generated steps before saving.")
+        warnings.append("Qwen completed missing recipe details. Review quantities, timings, servings, and generated steps before saving.")
     if used_thumbnail:
         warnings.append("The public social thumbnail was sent to Qwen together with the caption to help prepare this draft.")
     return warnings

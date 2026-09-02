@@ -66,7 +66,24 @@ async def import_recipe(payload: ImportRecipeRequest, x_pinchmeal_api_token: str
     if source.error_code:
         return ImportResponse.failure(payload.source_type, source.error_code, source.error_message or "Unable to read this source.", str(payload.url), source.platform)
     if source.draft is not None:
-        return ImportResponse.from_draft(source.source_type, source.extraction_method, source.draft, str(payload.url), source.platform, source.publisher, source.image_url, source.field_confidence, source.warnings)
+        normalized, confidence, warnings = await normalize_recipe_text(
+            "Structured recipe data:\n" + source.draft.model_dump_json(exclude_none=True),
+            method=source.extraction_method,
+            complete_missing=True,
+        )
+        if normalized is not None:
+            return ImportResponse.from_draft(
+                source.source_type,
+                ExtractionMethod.ai_normalization,
+                normalized,
+                str(payload.url),
+                source.platform,
+                source.publisher,
+                source.image_url,
+                confidence,
+                source.warnings + warnings,
+            )
+        return ImportResponse.from_draft(source.source_type, source.extraction_method, source.draft, str(payload.url), source.platform, source.publisher, source.image_url, source.field_confidence, source.warnings + warnings)
     if not source.text or len(source.text.strip()) < settings.minimum_source_text_chars:
         return ImportResponse.failure(source.source_type, ErrorCode.missing_recipe_information, "The source did not include enough recipe information to create a draft.", str(payload.url), source.platform)
 

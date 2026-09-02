@@ -75,6 +75,13 @@ class RecipeDraft(BaseModel):
     steps: list[StepDraft] = Field(default_factory=list)
     dietary_tags: list[str] = Field(default_factory=list)
     detected_allergens: list[str] = Field(default_factory=list)
+    calories: int | None = Field(default=None, ge=0)
+    protein_grams: float | None = Field(default=None, ge=0)
+    carbs_grams: float | None = Field(default=None, ge=0)
+    fat_grams: float | None = Field(default=None, ge=0)
+    total_cost_minor: int | None = Field(default=None, ge=0)
+    cost_per_serving_minor: int | None = Field(default=None, ge=0)
+    currency_code: str | None = None
     content_fingerprint: str | None = None
 
     @model_validator(mode="after")
@@ -82,6 +89,7 @@ class RecipeDraft(BaseModel):
         self.title = clean_optional(self.title)
         self.description = clean_optional(self.description)
         self.source_name = clean_optional(self.source_name)
+        self.currency_code = clean_optional(self.currency_code)
         self.ingredients = [item for item in self.ingredients if clean_optional(item.name)]
         self.steps = [item for item in self.steps if clean_optional(item.instruction)]
         canonical = "|".join([(self.title or "").lower(), *[i.name.lower() for i in self.ingredients], *[s.instruction.lower() for s in self.steps]])
