@@ -17,8 +17,6 @@ class Settings(BaseSettings):
     cognify_api_host: str = "google-images4.p.rapidapi.com"
     cognify_timeout_seconds: float = 12.0
     cognify_candidate_count: int = 12
-    cognify_minimum_width: int = 900
-    cognify_minimum_height: int = 600
     api_auth_token: str | None = None
     request_timeout_seconds: float = 25.0
     maximum_redirects: int = 4

@@ -13,22 +13,6 @@ from models import RecipeImageCandidate
 
 logger = logging.getLogger("pinchmeal.images")
 
-_BLOCKED_HOST_PARTS = {
-    "alamy.",
-    "depositphotos.",
-    "dreamstime.",
-    "freepik.",
-    "gettyimages.",
-    "istockphoto.",
-    "pinterest.",
-    "pinimg.",
-    "shutterstock.",
-    "stock.adobe.",
-    "vecteezy.",
-    "123rf.",
-}
-_BLOCKED_URL_WORDS = {"watermark", "watermarked", "sample-image", "placeholder", "sprite", "logo"}
-
 
 def _source_name(url: str) -> str:
     host = (urlsplit(url).hostname or "Image source").lower()
@@ -59,20 +43,6 @@ def _candidate(raw: object) -> RecipeImageCandidate | None:
     parsed = urlsplit(image_url)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
         return None
-    searchable = image_url.lower()
-    host = parsed.hostname.lower()
-    if any(part in host for part in _BLOCKED_HOST_PARTS):
-        return None
-    if any(word in searchable for word in _BLOCKED_URL_WORDS):
-        return None
-    if width is not None and width < settings.cognify_minimum_width:
-        return None
-    if height is not None and height < settings.cognify_minimum_height:
-        return None
-    if width is not None and height is not None:
-        ratio = width / height
-        if ratio < 0.8 or ratio > 2.4:
-            return None
 
     return RecipeImageCandidate(
         image_url=image_url,
@@ -123,14 +93,5 @@ async def search_recipe_images(title: str) -> list[RecipeImageCandidate]:
         seen.add(item.image_url)
         candidates.append(item)
 
-    # Prefer a wide, high-resolution result while retaining Google's order among
-    # otherwise equivalent candidates.
-    candidates.sort(
-        key=lambda item: (
-            item.width is not None and item.height is not None,
-            item.width is not None and item.height is not None and 1.2 <= item.width / item.height <= 2.0,
-            (item.width or 0) * (item.height or 0),
-        ),
-        reverse=True,
-    )
+    # Preserve the provider's ranking. The app intentionally uses the first result.
     return candidates[:8]
