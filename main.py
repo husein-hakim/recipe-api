@@ -11,8 +11,9 @@ from fastapi.responses import JSONResponse
 
 from caption_extractor import extract_source
 from config import settings
+from image_search import search_recipe_images
 from qwen import normalize_recipe_image, normalize_recipe_text
-from models import ErrorCode, ExtractionMethod, ImportRecipeRequest, ImportResponse, SourceType
+from models import ErrorCode, ExtractionMethod, ImportRecipeRequest, ImportResponse, RecipeImageRequest, RecipeImageResponse, SourceType
 
 
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO), format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -45,6 +46,23 @@ async def validation_error(_: Request, exc: RequestValidationError):
 @app.get("/health")
 async def health():
     return {"status": "ok", "version": app.version}
+
+
+@app.post("/v1/images/recipe", response_model=RecipeImageResponse)
+async def recipe_image(payload: RecipeImageRequest, x_pinchmeal_api_token: str | None = Header(default=None)):
+    if settings.api_auth_token and x_pinchmeal_api_token != settings.api_auth_token:
+        return RecipeImageResponse(status="failed", query=payload.title, error_code="unauthorized", error_message="This app is not authorized to use the image service.")
+    try:
+        candidates = await search_recipe_images(payload.title)
+    except asyncio.CancelledError:
+        raise
+    except RuntimeError as exc:
+        code = str(exc)
+        message = "Recipe imagery is not configured." if code == "not_configured" else "Recipe imagery is temporarily unavailable."
+        return RecipeImageResponse(status="failed", query=payload.title, error_code=code, error_message=message)
+    if not candidates:
+        return RecipeImageResponse(status="unavailable", query=payload.title, error_code="no_suitable_image", error_message="No suitable recipe image was found.")
+    return RecipeImageResponse(status="complete", query=payload.title, candidates=candidates)
 
 
 @app.post("/v1/imports/recipe", response_model=ImportResponse)

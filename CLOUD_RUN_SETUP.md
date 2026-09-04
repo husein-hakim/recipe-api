@@ -32,6 +32,15 @@ In Google Cloud Console:
 
 Do not upload a `.env` file to Cloud Run. Cloud Run receives settings through its Variables & Secrets screen.
 
+### Optional CognifyAPI image search secret
+
+To give Qwen-generated meals background images:
+
+1. Open CognifyAPI's Google Images listing on RapidAPI and subscribe to a plan.
+2. Copy the RapidAPI application key used in the `x-rapidapi-key` header.
+3. In Google Secret Manager create a secret named `cognify-api-key` containing only that key.
+4. Never add this key to Xcode or the iOS app.
+
 ## 3. Build settings
 
 On the Cloud Run Service source/build screen enter:
@@ -76,6 +85,7 @@ Add this secret reference:
 | Variable name | Source | Value |
 |---|---|---|
 | `QWEN_API_KEY` | Secret | `qwen-api-key`, version `latest` |
+| `COGNIFY_API_KEY` | Secret | `cognify-api-key`, version `latest` (optional) |
 
 Add these ordinary environment variables:
 
@@ -87,6 +97,9 @@ Add these ordinary environment variables:
 | `QWEN_TEXT_MODEL` | `qwen-flash` |
 | `QWEN_VISION_MODEL` | `qwen3-vl-plus` |
 | `QWEN_TIMEOUT_SECONDS` | `90` |
+| `COGNIFY_BASE_URL` | `https://google-images4.p.rapidapi.com` |
+| `COGNIFY_API_HOST` | `google-images4.p.rapidapi.com` |
+| `COGNIFY_TIMEOUT_SECONDS` | `12` |
 | `WEB_CONCURRENCY` | `1` |
 | `GUNICORN_TIMEOUT` | `120` |
 
@@ -134,6 +147,16 @@ If you enabled `API_AUTH_TOKEN`, also add:
 ```
 
 Finally set the iOS build setting `PINCHMEAL_BACKEND_BASE_URL` to the Cloud Run service URL without `/v1/imports/recipe`; the app adds that path itself.
+
+To check image search after adding the CognifyAPI secret:
+
+```bash
+curl -X POST 'https://YOUR-CLOUD-RUN-URL/v1/images/recipe' \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"fluffy cottage cheese pancakes with berries"}'
+```
+
+The response should have `status: "complete"` and a non-empty `candidates` array. Add the same `X-Pinchmeal-API-Token` header used above if application-level authentication is enabled.
 
 ## Common errors
 

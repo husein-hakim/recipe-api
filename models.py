@@ -114,6 +114,33 @@ class ImportRecipeRequest(BaseModel):
         return self
 
 
+class RecipeImageRequest(BaseModel):
+    title: str = Field(min_length=2, max_length=160)
+
+    @model_validator(mode="after")
+    def clean_title(self):
+        self.title = clean_optional(self.title) or ""
+        if len(self.title) < 2:
+            raise ValueError("title is required")
+        return self
+
+
+class RecipeImageCandidate(BaseModel):
+    image_url: str
+    source_url: str
+    source_name: str
+    width: int | None = None
+    height: int | None = None
+
+
+class RecipeImageResponse(BaseModel):
+    status: str
+    query: str
+    candidates: list[RecipeImageCandidate] = Field(default_factory=list)
+    error_code: str | None = None
+    error_message: str | None = None
+
+
 class ImportResponse(BaseModel):
     api_version: str = "v1"
     import_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
