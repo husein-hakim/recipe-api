@@ -10,3 +10,10 @@ __pycache__/
 .venv/
 venv/
 docs/
+node_modules/
+package.json
+package-lock.json
+src/
+wrangler.jsonc
+CLOUDFLARE_SETUP.md
+benchmark_hosts.py

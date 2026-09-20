@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from caption_extractor import extract_source
 from config import settings
 from image_search import search_recipe_images
-from qwen import normalize_recipe_image, normalize_recipe_text
+from gemini import normalize_recipe_image, normalize_recipe_text
 from models import ErrorCode, ExtractionMethod, ImportRecipeRequest, ImportResponse, RecipeImageRequest, RecipeImageResponse, SourceType
 
 
@@ -76,7 +76,7 @@ async def import_recipe(payload: ImportRecipeRequest, x_pinchmeal_api_token: str
             return ImportResponse.failure(payload.source_type, ErrorCode.missing_recipe_information, "No readable recipe text was provided.")
         method = ExtractionMethod.ocr_text if payload.source_type == SourceType.ocr_text else ExtractionMethod.manual_entry
         draft, confidence, warnings = await normalize_recipe_text(source_text, method=method)
-        if draft is None and "Qwen normalization timed out." in warnings:
+        if draft is None and "Gemini normalization timed out." in warnings:
             return ImportResponse.failure(payload.source_type, ErrorCode.timeout, "The recipe was read, but structuring it took too long. Please try again.")
         return ImportResponse.from_draft(payload.source_type, ExtractionMethod.ai_normalization if draft else method, draft, field_confidence=confidence, warnings=warnings)
 
@@ -112,7 +112,7 @@ async def import_recipe(payload: ImportRecipeRequest, x_pinchmeal_api_token: str
         complete_missing=source.source_type == SourceType.social,
     )
     if draft is None:
-        if "Qwen normalization timed out." in warnings:
+        if "Gemini normalization timed out." in warnings:
             return ImportResponse.failure(source.source_type, ErrorCode.timeout, "The source was found, but structuring its recipe details took too long. Please try again.", str(payload.url), source.platform)
         return ImportResponse.failure(source.source_type, ErrorCode.normalization_unavailable, "The source was found, but its recipe details could not be structured right now.", str(payload.url), source.platform)
     return ImportResponse.from_draft(source.source_type, ExtractionMethod.ai_normalization, draft, str(payload.url), source.platform, source.publisher, source.image_url, confidence, source.warnings + warnings + [f"Recipe details were normalized from {source.extraction_method.value}; they were not all directly extracted."])
@@ -136,7 +136,7 @@ async def import_recipe_image(
             return ImportResponse.failure(SourceType.ocr_text, ErrorCode.response_too_large, "The image is too large to process safely.")
         chunks.append(chunk)
     draft, confidence, warnings = await normalize_recipe_image(b"".join(chunks), file.content_type or "image/jpeg")
-    if draft is None and "Qwen normalization timed out." in warnings:
+    if draft is None and "Gemini normalization timed out." in warnings:
         return ImportResponse.failure(SourceType.ocr_text, ErrorCode.timeout, "The image was read, but structuring its recipe details took too long. Please try again.")
     return ImportResponse.from_draft(SourceType.ocr_text, ExtractionMethod.ai_normalization, draft, field_confidence=confidence, warnings=["The original image was uploaded for this request. Prefer on-device OCR text when possible."] + warnings)
 

@@ -7,11 +7,11 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
     expose_docs: bool = True
-    qwen_api_key: str | None = None
-    qwen_base_url: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-    qwen_text_model: str = "qwen-flash"
-    qwen_vision_model: str = "qwen3-vl-plus"
-    qwen_timeout_seconds: float = 90.0
+    gemini_api_key: str | None = None
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    gemini_text_model: str = "gemini-2.5-flash-lite"
+    gemini_vision_model: str = "gemini-2.5-flash-lite"
+    gemini_timeout_seconds: float = 90.0
     cognify_api_key: str | None = None
     cognify_base_url: str = "https://google-images4.p.rapidapi.com"
     cognify_api_host: str = "google-images4.p.rapidapi.com"

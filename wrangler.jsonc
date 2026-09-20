@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pinchmeal-recipe-import",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-20",
+  "observability": {
+    "enabled": true
+  },
+  "containers": [
+    {
+      "class_name": "PinchmealContainer",
+      "image": "./Dockerfile",
+      "max_instances": 3,
+      "instance_type": "basic",
+      "constraints": {
+        "regions": ["APAC"]
+      }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PINCHMEAL_CONTAINER",
+        "class_name": "PinchmealContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PinchmealContainer"]
+    }
+  ]
+}

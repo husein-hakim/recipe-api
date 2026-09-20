@@ -1,41 +1,35 @@
 # Pinchmeal recipe-import service
 
-This is a FastAPI web service, not a Google Cloud Function. It extracts recipe information from websites and social captions, then uses Qwen to prepare structured recipe drafts.
-For social imports, Qwen may complete missing culinary fields using the creator caption and public thumbnail. Imported recipes must still be reviewed before saving. It never marks a recipe allergen-safe from missing information.
+This FastAPI service extracts recipe information from websites and public Instagram, TikTok, and YouTube metadata, then uses the Gemini API to prepare structured recipe drafts.
 
-Recipe drafts also include per-serving calories, protein, carbohydrates and fat, plus total and per-serving cost in USD cents. Qwen calculates these values from the final ingredient quantities and serving count when the source does not provide them.
+For social imports, Gemini may complete missing culinary fields using the creator caption and public thumbnail. Imported recipes must still be reviewed before saving. The service never treats missing allergen information as proof that a recipe is allergen-safe.
 
-## The only required secret
+Recipe drafts include per-serving calories, protein, carbohydrates and fat, plus total and per-serving cost in USD cents. Gemini calculates these values from the final ingredient quantities and serving count when the source does not provide them.
 
-`QWEN_API_KEY` is the only secret required for recipe extraction. Create it in Alibaba Cloud Model Studio in the **Singapore region**. The included default endpoint is the Singapore endpoint, and Qwen keys must match the endpoint region.
+## Required secret
 
-`COGNIFY_API_KEY` is optional and enables background imagery for Qwen-generated meal plans. It is the RapidAPI key for CognifyAPI's Google Images API. Keep it in the backend only. Image lookup uses the recipe title exactly, returns several candidates, and does not delay Qwen plan generation.
+`GEMINI_API_KEY` is the only secret required for recipe extraction. Create it in Google AI Studio. Keep it in the backend only—never put it in the iOS app.
 
-Do not put the Qwen key in the iOS app. It belongs only in local `.env` during development and in Google Secret Manager on Cloud Run.
+`COGNIFY_API_KEY` is optional and enables background imagery for generated meal plans. It is the RapidAPI key for CognifyAPI's Google Images API.
+
+`API_AUTH_TOKEN` is optional during a private test. Before sharing a deployed endpoint, create a random value and set the same value in the iOS `PINCHMEAL_API_TOKEN` build setting.
 
 ## Local setup
 
-1. Duplicate `.env.example` and rename the copy to `.env`.
-2. Paste the Model Studio key after `QWEN_API_KEY=`. Do not add quotation marks.
-3. To test generated-meal imagery, subscribe to CognifyAPI on RapidAPI and paste that RapidAPI key after `COGNIFY_API_KEY=`.
-4. Leave the provider URLs and hosts unchanged.
-5. Install `requirements.txt` and run `uvicorn main:app --reload`.
-6. Open `http://127.0.0.1:8000/health`. It should return `{"status":"ok","version":"1.0.0"}`.
+1. Duplicate `.env.example` as `.env`.
+2. Add your Google AI Studio key after `GEMINI_API_KEY=`.
+3. Install `requirements.txt`.
+4. Run `uvicorn main:app --reload`.
+5. Open `http://127.0.0.1:8000/health`; it should return `{"status":"ok","version":"1.0.0"}`.
 
-`API_AUTH_TOKEN` is optional during a private initial test. Before sharing the deployed endpoint, create a random value and set the same value in the iOS `PINCHMEAL_API_TOKEN` build setting.
+The defaults use the stable multimodal `gemini-2.5-flash-lite` model for both text and image normalization. `GEMINI_VISION_MODEL` remains separate so a stronger image model can be tested later without changing code.
 
-## Cloud Run
+## Deployments
 
-Use the detailed field-by-field guide in [CLOUD_RUN_SETUP.md](CLOUD_RUN_SETUP.md). The important choices are:
+- Use [CLOUDFLARE_SETUP.md](CLOUDFLARE_SETUP.md) to run the existing Docker service in Cloudflare Containers for the speed/cost trial.
+- Use [CLOUD_RUN_SETUP.md](CLOUD_RUN_SETUP.md) if you want to retain Cloud Run as the control deployment.
 
-- Deployment type: **Cloud Run Service**, not Cloud Run Function.
-- Build type: **Docker**.
-- Build context directory: **`.`** because this repository’s root contains the Dockerfile.
-- Dockerfile: **`Dockerfile`**.
-- Entry point: leave blank.
-- Function target: leave blank.
-
-The Dockerfile already launches FastAPI with Gunicorn on Cloud Run’s `PORT`.
+Both deployments use the same Dockerfile and API contract, making side-by-side latency and cost measurements meaningful.
 
 ## Endpoints
 

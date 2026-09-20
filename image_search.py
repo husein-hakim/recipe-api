@@ -57,7 +57,7 @@ async def search_recipe_images(title: str) -> list[RecipeImageCandidate]:
     if not settings.cognify_api_key:
         raise RuntimeError("not_configured")
 
-    # Qwen's concise dish title is intentionally the entire query. Extra camera,
+    # Gemini's concise dish title is intentionally the entire query. Extra camera,
     # styling, cuisine, and meal-category terms made Google results less relevant.
     query = re.sub(r"\s+", " ", title).strip()[:160]
     timeout = httpx.Timeout(settings.cognify_timeout_seconds, connect=min(6.0, settings.cognify_timeout_seconds))
